@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "chunk.h"
 #include "common.h"
 #include "debug.h"
 #include "vm.h"
@@ -33,6 +34,13 @@ value_t stack_pop() {
 static interpret_result_t run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()]);
+#define BINARY_OP(op)                                                          \
+  do {                                                                         \
+    double b = stack_pop();                                                    \
+    double a = stack_pop();                                                    \
+    stack_push(a op b);                                                        \
+  } while (false)
+
   for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
     printf("          ");
@@ -53,6 +61,21 @@ static interpret_result_t run() {
       stack_push(constant);
       break;
     }
+    case OP_ADD:
+      BINARY_OP(+);
+      break;
+    case OP_SUBTRACT:
+      BINARY_OP(-);
+      break;
+    case OP_MULTIPLY:
+      BINARY_OP(*);
+      break;
+    case OP_DIVIDE:
+      BINARY_OP(/);
+      break;
+    case OP_NEGATE:
+      stack_push(-stack_pop());
+      break;
     case OP_RETURN: {
       print_value(stack_pop());
       printf("\n");
@@ -63,6 +86,7 @@ static interpret_result_t run() {
   }
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef BINARY_OP
 };
 
 interpret_result_t interpret(chunk_t *chunk) {

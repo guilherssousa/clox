@@ -14,6 +14,11 @@ This project contains 3 fundamental steps to compiling and running Lox projects:
 
 ## Additional Challenges
 
+### Bytecode
 - [ ] Replace encoding of line information to something akin to run-length encoding
 - [ ] Implement a `OP_CONSTANT_LONG` instruction to store 24-bit numbers.
 - [ ] Hardcore mode: Replace `stdlib.h` heap allocator methods.
+
+### VM
+- [ ] Remove `OP_NEGATE` and use `OP_SUBTRACT`
+- [ ] Dynamically grow the stack as needed to avoid Stack overflow.
