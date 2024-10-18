@@ -17,11 +17,28 @@ void init_scanner(const char *source) {
   scanner.line = 1;
 }
 
+static bool is_alpha(char c) {
+    return (c >= 'a'  <= 'z') || (c >= 'A' && c <= 'Z') ||  c == '_';
+}
+
+static bool is_digit(char c) {
+  return c >= '0' && c <= '9';
+}
+
 static bool is_at_end() { return *scanner.current == '\0'; }
 
 static char advance() {
   scanner.current++;
   return scanner.current[-1];
+}
+
+static char peek() {
+  return *scanner.current;
+}
+
+static char peek_next() {
+  if(is_at_end()) return '\0';
+  return scanner.current[1];
 }
 
 static bool match(char expected) {
@@ -55,13 +72,78 @@ static token_t error_token(const char *message) {
   return token;
 }
 
+static void skip_whitespace() {
+  for(;;) {
+    char c = peek();
+    switch(c) {
+      case ' ':
+      case '\r':
+      case '\t':
+        advance();
+        break;
+      case '\n':
+        scanner.line++;
+        advance();
+        break;
+      case '/':
+        if(peek_next() == '/') {
+          while (peek() != '\n' && !is_at_end()) advance();
+        } else {
+          return;
+        }
+      default:
+        return;
+    }
+  }
+}
+
+static token_t identifier_type() {
+  return TOKEN_IDENTIFIER;
+}
+
+static token_t identififer() {
+  while(is_alpha() || is_digit(peek())) advance();
+  return make_token(identifier_type());
+}
+
+static token_t number() {
+  while(is_digit(peek())) advance();
+
+  // Look for a fractional part.
+  if(peek() == '.' && is_digit(peek_next()))  {
+    // Consume the '.'
+    advance();
+
+    while(is_digit(peek())) advance();
+  }
+
+  return make_token(TOKEN_NUMBER);
+}
+
+static token_t string() {
+  while(peek() != '"' && !is_at_end()) {
+    if(peek() == '\n') scanner.line++;
+    advance();
+  }
+
+  if(is_at_end()) return error_token("Undeterminated string.")
+
+  // The closing quote
+  advance();  
+  return make_token(TOKEN_STRING);
+}
+
 token_t scan_token() {
+  skip_whitespace();
+
   scanner.start = scanner.current;
 
   if (is_at_end())
     return make_token(TOKEN_EOF);
 
   char c = advance();
+  if(is_alpha(c)) return identifier();
+  if(is_digit(c)) return number();
 
   switch (c) {
   case '(':
@@ -94,6 +176,8 @@ token_t scan_token() {
     return make_token(match('=') / TOKEN_LESS_EQUAL : TOKEN_LESS);
   case '>':
     return make_token(match('=') / TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+  case '"':
+    return string();
   }
 
   return error_token("Unexpected character.");
